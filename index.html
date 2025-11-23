@@ -3,702 +3,480 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K-Live Subs (PiP)</title>
+    <title>K-Drama Live Translator</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@600&family=Montserrat:wght@700&display=swap');
-
-        :root {
-            --sub-color: #FFD700;
-            --sub-outline: #000000;
-            --sub-font: 'Roboto', sans-serif;
-            --sub-size: 32px;
-        }
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #1a1a1a;
-            color: #e5e5e5;
-            overflow-x: hidden;
-            transition: background-color 0.3s ease;
-        }
-
-        /* Subtitle Mode Styles */
-        body.subtitle-mode { background-color: #000000; }
-        body.subtitle-mode .controls-panel,
-        body.subtitle-mode .header-area,
-        body.subtitle-mode #capsule-window { display: none !important; }
-        body.subtitle-mode #subtitle-container {
-            position: fixed; bottom: 10%; left: 5%; right: 5%;
-            text-align: center; display: flex; flex-direction: column;
-            justify-content: flex-end; height: 80vh; pointer-events: none;
-        }
-        body.subtitle-mode .exit-btn {
-            display: block; position: fixed; top: 20px; right: 20px;
-            z-index: 50; pointer-events: auto; opacity: 0.3;
-        }
-        body.subtitle-mode .exit-btn:hover { opacity: 1; }
-
-        /* Animations */
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-        .recording-pulse { animation: pulse-ring 2s infinite; }
-        
-        .mode-btn.active {
-            background-color: #7c3aed; color: white; border-color: #7c3aed;
-        }
-
-        /* Dynamic Subtitle Style */
-        .subtitle-style {
-            color: var(--sub-color);
-            font-family: var(--sub-font);
-            font-size: var(--sub-size);
-            text-shadow: 
-                -2px -2px 0 var(--sub-outline),  
-                 2px -2px 0 var(--sub-outline),
-                -2px  2px 0 var(--sub-outline),
-                 2px  2px 0 var(--sub-outline),
-                 4px 4px 8px rgba(0,0,0,0.9);
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            line-height: 1.3;
-            transition: all 0.2s ease;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        /* Animation utilities */
+        .animate-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="bg-gray-950 text-white min-h-screen">
 
-    <!-- Header -->
-    <header class="header-area bg-gray-900 border-b border-gray-800 p-4 shadow-lg sticky top-0 z-20">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-gradient-to-r from-pink-500 to-violet-600 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                    <i class="fa-solid fa-closed-captioning"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-xl text-white tracking-tight">K-Live Subs</h1>
-                    <p class="text-xs text-gray-400">Pop-out Translator</p>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-2">
-                <button onclick="togglePiP()" class="bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-2" title="Pop-out Floating Window (Works over other tabs!)">
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Pop-out
-                </button>
-                <button onclick="toggleSettings()" class="text-gray-400 hover:text-white transition p-2">
-                    <i class="fa-solid fa-gear text-xl"></i>
-                </button>
-            </div>
-        </div>
-    </header>
+    <div id="root"></div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-gray-700 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-white">Settings</h2>
-                <button onclick="toggleSettings()" class="text-gray-400 hover:text-white">
-                    <i class="fa-solid fa-xmark text-2xl"></i>
-                </button>
-            </div>
-            <div class="space-y-5">
-                <!-- API Key -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Gemini API Key</label>
-                    <input type="password" id="api-key-input" placeholder="Paste your API key here..." 
-                        class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-violet-500 focus:outline-none transition">
-                </div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-                <div class="border-t border-gray-700 pt-4">
-                    <h3 class="text-white font-bold mb-3">Subtitle Appearance</h3>
-                    
-                    <!-- Colors -->
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Text Color</label>
-                            <div class="flex items-center gap-2 bg-gray-900 p-2 rounded-lg border border-gray-700">
-                                <input type="color" id="sub-color-input" value="#FFD700" class="w-8 h-8 rounded cursor-pointer bg-transparent border-none">
-                                <span class="text-xs text-gray-300">Choose</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Outline Color</label>
-                            <div class="flex items-center gap-2 bg-gray-900 p-2 rounded-lg border border-gray-700">
-                                <input type="color" id="sub-outline-input" value="#000000" class="w-8 h-8 rounded cursor-pointer bg-transparent border-none">
-                                <span class="text-xs text-gray-300">Choose</span>
-                            </div>
-                        </div>
-                    </div>
+        // --- ICONS (SVG Components) ---
+        const Icon = ({ path, className }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className}
+            >
+                {path}
+            </svg>
+        );
 
-                    <!-- Fonts -->
-                    <div class="mb-4">
-                        <label class="block text-xs text-gray-400 mb-1">Font Style</label>
-                        <select id="sub-font-select" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-white text-sm">
-                            <option value="'Roboto', sans-serif">Standard (Roboto)</option>
-                            <option value="'Montserrat', sans-serif">Bold (Montserrat)</option>
-                            <option value="'Open Sans', sans-serif">Clean (Open Sans)</option>
-                            <option value="Arial, sans-serif">Basic (Arial)</option>
-                            <option value="'Courier New', monospace">Retro (Courier)</option>
-                        </select>
-                    </div>
-
-                    <!-- Size -->
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Size</label>
-                        <input type="range" id="font-size-slider" min="20" max="80" value="32" class="w-full accent-violet-500">
-                    </div>
-                </div>
-
-                <div class="pt-2 border-t border-gray-700">
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="block text-sm font-medium text-gray-300">Fast Prediction (Mic Mode)</label>
-                        <input type="checkbox" id="fast-mode-check" checked class="w-4 h-4 accent-violet-500">
-                    </div>
-                </div>
-            </div>
-            <button onclick="saveSettings()" class="w-full mt-6 bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl transition shadow-lg">
-                Save & Close
-            </button>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <main class="flex-grow flex flex-col items-center justify-start pt-6 pb-20 px-4 max-w-4xl mx-auto w-full">
-
-        <!-- Controls -->
-        <div class="controls-panel w-full bg-gray-800/50 rounded-2xl p-6 border border-gray-700 shadow-xl backdrop-blur mb-6">
-            
-            <!-- Source Selector -->
-            <div class="flex p-1 bg-gray-900 rounded-xl mb-6 border border-gray-800">
-                <button onclick="setMode('mic')" id="btn-mic-mode" class="mode-btn active flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200 text-gray-400 hover:text-white">
-                    <i class="fa-solid fa-microphone mr-2"></i>Microphone (Fast)
-                </button>
-                <button onclick="setMode('system')" id="btn-sys-mode" class="mode-btn flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200 text-gray-400 hover:text-white">
-                    <i class="fa-solid fa-desktop mr-2"></i>System Audio (HQ)
-                </button>
-            </div>
-
-            <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                <div class="flex items-center gap-4 w-full sm:w-auto">
-                    <button id="record-btn" onclick="toggleProcessing()" 
-                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-xl transition group">
-                        <div id="record-indicator" class="w-3 h-3 rounded-full bg-red-500"></div>
-                        <span id="record-text">Start Listening</span>
-                    </button>
-                </div>
-                <div class="flex gap-3 w-full sm:w-auto">
-                    <button onclick="clearHistory()" class="flex-1 sm:flex-none bg-gray-700 hover:bg-gray-600 text-gray-300 py-3 px-4 rounded-xl transition" title="Clear History">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                    <button onclick="enterSubtitleMode()" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-xl transition shadow-md flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-expand"></i>
-                        <span>Subtitle Mode</span>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Status Bar -->
-            <div class="mt-4 flex flex-col gap-1 text-sm">
-                <div class="flex items-center gap-2">
-                    <span class="text-gray-400">Status:</span>
-                    <span id="status-text" class="text-yellow-500 font-medium">Ready</span>
-                </div>
-                <div id="offline-warning" class="hidden text-xs text-red-400 mt-1 font-bold">
-                    <i class="fa-solid fa-wifi mr-1"></i> You are offline. Please connect to the internet.
-                </div>
-                <div id="system-audio-hint" class="hidden text-xs text-gray-400 bg-gray-800 p-2 rounded border border-gray-600 mt-2">
-                    <i class="fa-solid fa-circle-exclamation text-yellow-500 mr-1"></i> 
-                    <strong>Important:</strong> Select your movie tab and <strong>CHECK "Share Audio"</strong>.
-                </div>
-            </div>
-        </div>
-
-        <!-- Live Transcript & Translation Area -->
-        <div id="main-display" class="w-full space-y-6">
-            
-            <!-- Current Active Sentence -->
-            <div class="bg-black rounded-2xl p-8 border border-gray-800 min-h-[160px] flex flex-col justify-center items-center text-center shadow-2xl relative overflow-hidden">
-                
-                <!-- Loading Indicator (Subtle) -->
-                <div id="translation-loader" class="hidden absolute top-3 right-4">
-                    <i class="fa-solid fa-circle-notch fa-spin text-gray-600"></i>
-                </div>
-
-                <!-- Latest Translation -->
-                <h2 id="live-english" class="subtitle-style">
-                    
-                </h2>
-                
-                <!-- Initial Placeholder -->
-                <div id="empty-state" class="text-gray-700 font-mono text-sm">
-                    Translation will appear here...
-                </div>
-            </div>
-
-            <!-- History Log -->
-            <div class="controls-panel w-full">
-                <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-3 px-2">History</h3>
-                <div id="history-log" class="bg-black/30 rounded-xl p-4 h-64 overflow-y-auto space-y-3 border border-gray-800/50 font-sans">
-                    <div class="text-center text-gray-600 py-10 italic">History will appear here.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Subtitle Container (For Fullscreen Mode) -->
-        <div id="subtitle-container" class="hidden">
-            <div id="subtitle-content" class="transition-all duration-300">
-                <p id="subtitle-english" class="subtitle-style">
-                    Listening...
-                </p>
-            </div>
-        </div>
-        
-        <!-- Exit Button for Subtitle Mode -->
-        <button onclick="exitSubtitleMode()" class="exit-btn hidden bg-white/20 hover:bg-white/40 backdrop-blur text-white rounded-full p-3 transition">
-            <i class="fa-solid fa-compress text-2xl"></i>
-        </button>
-
-        <!-- Hidden Elements for PiP Magic -->
-        <canvas id="pip-canvas" width="600" height="150" class="hidden"></canvas>
-        <video id="pip-video" class="hidden" muted autoplay playsinline></video>
-
-    </main>
-
-    <script>
-        // --- Configuration & State ---
-        let apiKey = localStorage.getItem('gemini_api_key') || 'AIzaSyDpeXO_hj9L_XVa8tNuzFN2JDzlAzx9lP4';
-        if (apiKey) document.getElementById('api-key-input').value = apiKey;
-
-        // Appearance Config
-        let config = {
-            color: '#FFD700',
-            outline: '#000000',
-            font: "'Roboto', sans-serif",
-            size: 32
+        const Icons = {
+            Activity: (props) => <Icon {...props} path={<><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></>} />,
+            Mic: (props) => <Icon {...props} path={<><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></>} />,
+            Monitor: (props) => <Icon {...props} path={<><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></>} />,
+            Settings: (props) => <Icon {...props} path={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>} />,
+            X: (props) => <Icon {...props} path={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} />,
+            ExternalLink: (props) => <Icon {...props} path={<><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>} />,
+            Layers: (props) => <Icon {...props} path={<><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>} />,
+            Palette: (props) => <Icon {...props} path={<><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></>} />,
+            Maximize: (props) => <Icon {...props} path={<><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></>} />,
+            AlertCircle: (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>} />
         };
 
-        let recognition; 
-        let mediaRecorder; 
-        let systemStream;
-        let isProcessing = false;
-        let currentMode = 'mic';
-        let fastMode = true;
-        let interimTimeout = null;
-        let lastTranslatedText = "";
+        // --- MAIN COMPONENT ---
+        const Button = ({ children, onClick, variant = 'primary', className = '', ...props }) => {
+            const baseStyle = "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed select-none";
+            const variants = {
+                primary: "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 active:scale-95",
+                secondary: "bg-gray-700 hover:bg-gray-600 text-gray-100 active:scale-95",
+                danger: "bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-500/20 active:scale-95",
+                ghost: "hover:bg-gray-800 text-gray-300 hover:text-white active:scale-95",
+                outline: "border border-gray-600 text-gray-300 hover:border-gray-400 hover:text-white active:scale-95"
+            };
+            return (
+                <button onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
+                    {children}
+                </button>
+            );
+        };
 
-        // Elements
-        const recordBtn = document.getElementById('record-btn');
-        const recordIndicator = document.getElementById('record-indicator');
-        const recordText = document.getElementById('record-text');
-        const statusText = document.getElementById('status-text');
-        const liveEnglishEl = document.getElementById('live-english');
-        const emptyState = document.getElementById('empty-state');
-        const historyLog = document.getElementById('history-log');
-        const subtitleEnglish = document.getElementById('subtitle-english');
-        const loader = document.getElementById('translation-loader');
-        const btnMic = document.getElementById('btn-mic-mode');
-        const btnSys = document.getElementById('btn-sys-mode');
-        const systemHint = document.getElementById('system-audio-hint');
-        const offlineWarning = document.getElementById('offline-warning');
+        const Card = ({ children, className = '' }) => (
+            <div className={`bg-gray-900/90 backdrop-blur-md border border-gray-800 rounded-xl p-6 ${className}`}>
+                {children}
+            </div>
+        );
 
-        // PiP Elements
-        const pipCanvas = document.getElementById('pip-canvas');
-        const pipCtx = pipCanvas.getContext('2d');
-        const pipVideo = document.getElementById('pip-video');
-        let pipActive = false;
-        
-        // --- Check Connection ---
-        setInterval(() => {
-            if (!navigator.onLine) offlineWarning.classList.remove('hidden');
-            else offlineWarning.classList.add('hidden');
-        }, 2000);
-
-        // --- Mode Switching ---
-        function setMode(mode) {
-            if (isProcessing) toggleProcessing();
-            currentMode = mode;
+        function App() {
+            const [isCapturing, setIsCapturing] = useState(false);
+            const [sourceType, setSourceType] = useState('system'); 
+            const [apiKey, setApiKey] = useState('');
+            const [showSettings, setShowSettings] = useState(false);
+            const [obsMode, setObsMode] = useState(false);
+            const [alertMsg, setAlertMsg] = useState('');
             
-            if (mode === 'mic') {
-                btnMic.classList.add('active');
-                btnSys.classList.remove('active');
-                systemHint.classList.add('hidden');
-                recordText.innerText = "Start Microphone";
-            } else {
-                btnSys.classList.add('active');
-                btnMic.classList.remove('active');
-                systemHint.classList.remove('hidden');
-                recordText.innerText = "Capture System Audio";
-            }
-        }
-
-        function toggleProcessing() {
-            if (currentMode === 'mic') toggleMicRecording();
-            else toggleSystemAudioRecording();
-        }
-
-        // --- Microphone Logic ---
-        function initSpeechRecognition() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return null;
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const rec = new SpeechRecognition();
-            rec.continuous = true;
-            rec.interimResults = true;
-            rec.lang = 'ko-KR';
-            
-            rec.onstart = () => {
-                isProcessing = true;
-                updateUIState(true);
-                statusText.innerText = "Listening...";
-                statusText.className = "text-green-400 font-medium";
-            };
-            rec.onerror = (event) => {
-                if (event.error === 'no-speech') return;
-                statusText.innerText = `Error: ${event.error}`;
-                isProcessing = false;
-                updateUIState(false);
-            };
-            rec.onend = () => {
-                if (isProcessing && currentMode === 'mic') {
-                    try { rec.start(); } catch(e) { isProcessing = false; updateUIState(false); }
-                } else {
-                    if(currentMode === 'mic') { isProcessing = false; updateUIState(false); }
-                }
-            };
-            rec.onresult = (event) => {
-                let interimTranscript = '';
-                let finalTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
-                    else interimTranscript += event.results[i][0].transcript;
-                }
-                
-                if (interimTranscript && fastMode) {
-                    clearTimeout(interimTimeout);
-                    interimTimeout = setTimeout(() => {
-                        if (interimTranscript.length > 3 && interimTranscript !== lastTranslatedText) {
-                            handleTextTranslation(interimTranscript);
-                        }
-                    }, 700);
-                }
-                if (finalTranscript) {
-                    clearTimeout(interimTimeout);
-                    if (finalTranscript !== lastTranslatedText) handleTextTranslation(finalTranscript);
-                }
-            };
-            return rec;
-        }
-
-        function toggleMicRecording() {
-            if (!recognition) recognition = initSpeechRecognition();
-            if (isProcessing) {
-                isProcessing = false;
-                recognition.stop();
-                statusText.innerText = "Stopped";
-            } else {
-                if (!apiKey) { toggleSettings(); alert("API Key Required"); return; }
-                try { recognition.start(); } catch (e) {}
-            }
-        }
-
-        // --- System Audio Logic ---
-        async function toggleSystemAudioRecording() {
-            if (isProcessing) { stopSystemAudio(); return; }
-            if (!apiKey) { toggleSettings(); alert("API Key Required"); return; }
-
-            try {
-                systemStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { width: 1, height: 1 },
-                    audio: true,
-                    selfBrowserSurface: "exclude" 
-                });
-                
-                if (systemStream.getAudioTracks().length === 0) {
-                    alert("Capture Cancelled: You did not check the 'Share Audio' box.");
-                    systemStream.getTracks().forEach(track => track.stop());
-                    return;
-                }
-
-                systemStream.getVideoTracks()[0].onended = () => { if(isProcessing) stopSystemAudio(); };
-                startMediaRecorder();
-                isProcessing = true;
-                updateUIState(true);
-                statusText.innerText = "Capturing Audio...";
-                statusText.className = "text-blue-400 font-medium";
-
-            } catch (err) {
-                statusText.innerText = "Capture Cancelled";
-                statusText.className = "text-red-500";
-                if (systemStream) systemStream.getTracks().forEach(track => track.stop());
-            }
-        }
-
-        function stopSystemAudio() {
-            isProcessing = false;
-            updateUIState(false);
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-            if (systemStream) systemStream.getTracks().forEach(track => track.stop());
-            statusText.innerText = "Stopped";
-            statusText.className = "text-yellow-500 font-medium";
-        }
-
-        function startMediaRecorder() {
-            let mimeType = '';
-            const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
-            for (const type of types) if (MediaRecorder.isTypeSupported(type)) { mimeType = type; break; }
-
-            const options = mimeType ? { mimeType } : undefined;
-            mediaRecorder = new MediaRecorder(systemStream, options);
-
-            mediaRecorder.ondataavailable = async (e) => {
-                if (e.data.size > 0) handleAudioTranslation(e.data);
-            };
-            mediaRecorder.start();
-            
-            const loopInterval = setInterval(() => {
-                if (!isProcessing || mediaRecorder.state === 'inactive') {
-                    clearInterval(loopInterval);
-                    return;
-                }
-                mediaRecorder.stop();
-                mediaRecorder.start(); 
-            }, 4000); 
-        }
-
-        // --- Translation Handlers ---
-        async function handleTextTranslation(text) {
-            lastTranslatedText = text;
-            loader.classList.remove('hidden');
-            const translation = await callGeminiText(text);
-            loader.classList.add('hidden');
-            updateDisplay(translation);
-        }
-
-        async function handleAudioTranslation(audioBlob) {
-            if (!navigator.onLine) return;
-            loader.classList.remove('hidden');
-            
-            try {
-                const base64Audio = await blobToBase64(audioBlob);
-                const result = await callGeminiAudio(base64Audio);
-                if (result && result.english) {
-                    updateDisplay(result.english);
-                }
-            } catch (e) {
-                console.error(e);
-            } finally {
-                loader.classList.add('hidden');
-            }
-        }
-
-        // --- API Calls (Gemini) ---
-        async function callGeminiText(text) {
-            const prompt = `Translate this Korean text to concise English subtitles. Return ONLY the English translation. Text: "${text}"`;
-            return await sendToGemini([{ parts: [{ text: prompt }] }]);
-        }
-
-        async function callGeminiAudio(base64Data) {
-            const prompt = `Transcribe Korean audio and translate to English. Return JSON: {"english": "translated text"}. If no speech, return empty string.`;
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        { inlineData: { mimeType: "audio/webm", data: base64Data } }
-                    ]
-                }],
-                generationConfig: { responseMimeType: "application/json" }
-            };
-            const responseText = await sendToGemini(payload, true);
-            if (!responseText) return null;
-            try { return JSON.parse(responseText); } catch (e) { return null; }
-        }
-
-        async function sendToGemini(payloadOrContents, isFullPayload = false) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            const body = isFullPayload ? payloadOrContents : { contents: payloadOrContents };
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            } catch (error) { return ""; }
-        }
-
-        function blobToBase64(blob) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(blob);
-                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            const [styles, setStyles] = useState({
+                fontSize: 28,
+                textColor: '#ffffff',
+                bgColor: '#000000',
+                bgOpacity: 60,
+                fontFamily: 'sans-serif',
+                fontWeight: '700'
             });
-        }
 
-        // --- UI Updates ---
-        function updateUIState(active) {
-            if (active) {
-                recordBtn.classList.replace('bg-gray-700', 'bg-red-600');
-                recordBtn.classList.replace('hover:bg-gray-600', 'hover:bg-red-700');
-                recordIndicator.classList.add('recording-pulse');
-                recordIndicator.classList.replace('bg-red-500', 'bg-white');
-                recordText.innerText = "Stop";
-            } else {
-                recordBtn.classList.replace('bg-red-600', 'bg-gray-700');
-                recordBtn.classList.replace('hover:bg-red-700', 'hover:bg-gray-600');
-                recordIndicator.classList.remove('recording-pulse');
-                recordIndicator.classList.replace('bg-white', 'bg-red-500');
-                recordText.innerText = currentMode === 'mic' ? "Start Microphone" : "Capture System Audio";
-            }
-        }
+            const [transcript, setTranscript] = useState("Waiting for audio...");
+            const [translation, setTranslation] = useState("");
+            const [isTranslating, setIsTranslating] = useState(false);
 
-        function updateDisplay(english) {
-            if (!english || english.trim() === "") return;
-            
-            // Remove thoughts/placeholders regex just in case
-            const cleanEnglish = english.replace(/<thought>.*?<\/thought>/gs, '').trim();
-            if (!cleanEnglish) return;
+            const recognitionRef = useRef(null);
+            const streamRef = useRef(null);
+            const pipWindowRef = useRef(null);
 
-            emptyState.style.display = 'none';
-            liveEnglishEl.innerText = cleanEnglish;
-            subtitleEnglish.innerText = cleanEnglish;
-            addToHistory(cleanEnglish);
-            updatePiPCanvas(cleanEnglish);
-        }
+            useEffect(() => {
+                const savedKey = localStorage.getItem('gemini_api_key');
+                if (savedKey) setApiKey(savedKey);
+                return () => stopCapture();
+            }, []);
 
-        function addToHistory(english) {
-            if (historyLog.firstChild && historyLog.firstChild.innerText === english) return;
-            if (historyLog.querySelector('.italic')) historyLog.innerHTML = '';
-            const item = document.createElement('div');
-            item.className = "text-white p-2 border-b border-gray-700/50 text-lg";
-            item.innerText = english;
-            historyLog.insertBefore(item, historyLog.firstChild);
-        }
+            const saveApiKey = (key) => {
+                setApiKey(key);
+                localStorage.setItem('gemini_api_key', key);
+            };
 
-        function clearHistory() {
-            historyLog.innerHTML = '<div class="text-center text-gray-600 py-10 italic">History will appear here.</div>';
-            liveEnglishEl.innerText = "";
-            emptyState.style.display = 'block';
-            updatePiPCanvas("");
-        }
+            const showAlert = (msg) => {
+                setAlertMsg(msg);
+                setTimeout(() => setAlertMsg(''), 5000);
+            };
 
-        // --- Settings Logic ---
-        function toggleSettings() { document.getElementById('settings-modal').classList.toggle('hidden'); }
-        
-        function saveSettings() {
-            apiKey = document.getElementById('api-key-input').value.trim();
-            localStorage.setItem('gemini_api_key', apiKey);
-            fastMode = document.getElementById('fast-mode-check').checked;
-            
-            // Update Config
-            config.color = document.getElementById('sub-color-input').value;
-            config.outline = document.getElementById('sub-outline-input').value;
-            config.font = document.getElementById('sub-font-select').value;
-            config.size = document.getElementById('font-size-slider').value;
-
-            // Apply to CSS Variables
-            document.documentElement.style.setProperty('--sub-color', config.color);
-            document.documentElement.style.setProperty('--sub-outline', config.outline);
-            document.documentElement.style.setProperty('--sub-font', config.font.replace(/'/g, "")); // CSS var handles quotes weirdly sometimes, mostly okay
-            document.documentElement.style.setProperty('--sub-size', config.size + 'px');
-
-            // Re-render active subtitle
-            if (liveEnglishEl.innerText) {
-                liveEnglishEl.style.fontFamily = config.font; // Explicit set for safety
-                updatePiPCanvas(liveEnglishEl.innerText);
-            }
-
-            toggleSettings();
-        }
-
-        // --- Picture-in-Picture (Pop-out) Logic ---
-        function updatePiPCanvas(text) {
-            if (!pipActive && pipVideo.paused) return;
-
-            // Clear Background
-            pipCtx.fillStyle = "black";
-            pipCtx.fillRect(0, 0, pipCanvas.width, pipCanvas.height);
-
-            // Configure Font based on settings
-            // Scale size slightly for canvas resolution (canvas is 600px wide)
-            const canvasFontSize = Math.max(30, parseInt(config.size) * 1.2); 
-            pipCtx.font = `900 ${canvasFontSize}px ${config.font.split(',')[0].replace(/['"]/g, '')}, sans-serif`;
-            pipCtx.textAlign = "center";
-            pipCtx.textBaseline = "middle";
-            pipCtx.lineWidth = 6;
-            pipCtx.lineJoin = "round";
-
-            const x = pipCanvas.width / 2;
-            const y = pipCanvas.height / 2;
-            const maxW = 580;
-
-            // Wrap Text
-            const words = text.split(' ');
-            let line = '';
-            let lines = [];
-
-            for(let n = 0; n < words.length; n++) {
-                let testLine = line + words[n] + ' ';
-                let metrics = pipCtx.measureText(testLine);
-                if (metrics.width > maxW && n > 0) {
-                    lines.push(line);
-                    line = words[n] + ' ';
-                } else {
-                    line = testLine;
-                }
-            }
-            lines.push(line);
-
-            // Draw
-            const lineHeight = canvasFontSize * 1.2;
-            const startY = y - ((lines.length - 1) * lineHeight) / 2;
-
-            lines.forEach((l, i) => {
-                const ly = startY + (i * lineHeight);
-                // Outline
-                pipCtx.strokeStyle = config.outline;
-                pipCtx.strokeText(l, x, ly);
-                // Fill
-                pipCtx.fillStyle = config.color;
-                pipCtx.fillText(l, x, ly);
-            });
-        }
-
-        async function togglePiP() {
-            if (document.pictureInPictureElement) {
-                await document.exitPictureInPicture();
-                pipActive = false;
-            } else {
-                if (pipVideo.readyState === 0) {
-                    const stream = pipCanvas.captureStream(10);
-                    pipVideo.srcObject = stream;
-                    updatePiPCanvas("Pop-out Ready");
-                }
+            const translateText = async (text) => {
+                if (!text || !apiKey || text.trim().length < 2) return;
+                
+                setIsTranslating(true);
                 try {
-                    await pipVideo.play();
-                    await pipVideo.requestPictureInPicture();
-                    pipActive = true;
-                } catch (e) {
-                    alert("Pop-out failed. Try interacting with the page first.");
+                    const response = await fetch(
+                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [{
+                                        text: `Translate this Korean text to English for subtitles. 
+                                        Rules: Concise, Natural. If meaning is ambiguous, add (Tagalog: <translation>) at end.
+                                        Korean: "${text}"`
+                                    }]
+                                }]
+                            })
+                        }
+                    );
+
+                    const data = await response.json();
+                    if (data.error) {
+                        showAlert("API Error: Check Key");
+                    } else if (data.candidates && data.candidates[0].content) {
+                        setTranslation(data.candidates[0].content.parts[0].text);
+                    }
+                } catch (error) {
+                    console.error("Translation network error:", error);
+                } finally {
+                    setIsTranslating(false);
                 }
-            }
+            };
+
+            const startCapture = async () => {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    showAlert("Browser not supported. Please use Google Chrome.");
+                    return;
+                }
+
+                try {
+                    let stream;
+                    if (sourceType === 'system') {
+                        try {
+                            stream = await navigator.mediaDevices.getDisplayMedia({
+                                video: true,
+                                audio: {
+                                    echoCancellation: false,
+                                    autoGainControl: false,
+                                    noiseSuppression: false
+                                }
+                            });
+                        } catch (err) {
+                            console.log("User cancelled selection");
+                            return;
+                        }
+                        
+                        const audioTrack = stream.getAudioTracks()[0];
+                        if (!audioTrack) {
+                            showAlert("No audio detected! Check 'Share tab audio' in popup.");
+                            stream.getTracks().forEach(t => t.stop());
+                            return;
+                        }
+                    } else {
+                        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    }
+
+                    streamRef.current = stream;
+                    stream.getTracks().forEach(track => {
+                        track.onended = stopCapture;
+                    });
+
+                    const recognition = new SpeechRecognition();
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+                    recognition.lang = 'ko-KR';
+
+                    recognition.onstart = () => {
+                        setIsCapturing(true);
+                        setTranscript("Listening...");
+                        setTranslation("");
+                    };
+
+                    recognition.onerror = (event) => {
+                        if (event.error === 'not-allowed') {
+                            stopCapture();
+                            showAlert("Microphone/Audio permission denied.");
+                        }
+                    };
+
+                    recognition.onend = () => {
+                        if (streamRef.current?.active) {
+                            try { recognition.start(); } catch(e) {}
+                        } else {
+                            setIsCapturing(false);
+                        }
+                    };
+
+                    recognition.onresult = (event) => {
+                        let finalTranscript = '';
+                        for (let i = event.resultIndex; i < event.results.length; ++i) {
+                            if (event.results[i].isFinal) {
+                                finalTranscript = event.results[i][0].transcript;
+                                setTranscript(finalTranscript);
+                                translateText(finalTranscript);
+                            } else {
+                                // optional: show interim
+                            }
+                        }
+                    };
+
+                    recognitionRef.current = recognition;
+                    recognition.start();
+
+                } catch (err) {
+                    console.error("Error starting capture:", err);
+                    showAlert("Failed to start. Ensure secure context (HTTPS/localhost).");
+                    setIsCapturing(false);
+                }
+            };
+
+            const stopCapture = () => {
+                if (recognitionRef.current) recognitionRef.current.stop();
+                if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
+                setIsCapturing(false);
+                setTranscript("Paused");
+                setTranslation("");
+            };
+
+            const togglePiP = async () => {
+                if (!window.documentPictureInPicture) {
+                    showAlert("PiP not supported in this browser.");
+                    return;
+                }
+                if (window.documentPictureInPicture.window) {
+                    window.documentPictureInPicture.window.close();
+                    return;
+                }
+
+                try {
+                    const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 800, height: 300 });
+                    pipWindowRef.current = pipWindow;
+
+                    // Copy styles
+                    [...document.styleSheets].forEach((styleSheet) => {
+                        try {
+                            if (styleSheet.href) {
+                                const link = document.createElement('link');
+                                link.rel = 'stylesheet';
+                                link.type = styleSheet.type;
+                                link.media = styleSheet.media;
+                                link.href = styleSheet.href;
+                                pipWindow.document.head.appendChild(link);
+                            } else if (styleSheet.cssRules) {
+                                const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
+                                const style = document.createElement('style');
+                                style.textContent = cssRules;
+                                pipWindow.document.head.appendChild(style);
+                            }
+                        } catch (e) {}
+                    });
+
+                    const container = document.getElementById('caption-container');
+                    const pipBody = pipWindow.document.body;
+                    pipBody.style.backgroundColor = "black";
+                    pipBody.style.display = "flex";
+                    pipBody.style.justifyContent = "center";
+                    pipBody.style.alignItems = "center";
+                    pipBody.style.height = "100vh";
+                    pipBody.style.margin = "0";
+                    pipBody.appendChild(container);
+
+                    pipWindow.addEventListener("pagehide", () => {
+                        const mainContainerWrapper = document.getElementById('main-preview-area');
+                        if (mainContainerWrapper && container) {
+                            mainContainerWrapper.appendChild(container);
+                        }
+                        pipWindowRef.current = null;
+                    });
+                } catch (err) {
+                    console.error("PiP failed:", err);
+                    showAlert("Failed to open Picture-in-Picture.");
+                }
+            };
+
+            const getContainerStyle = () => ({
+                backgroundColor: obsMode ? 'transparent' : `rgba(0,0,0, ${styles.bgOpacity / 100})`,
+                fontFamily: styles.fontFamily,
+                textShadow: '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
+            });
+
+            const getTextStyle = () => ({
+                color: styles.textColor,
+                fontSize: `${styles.fontSize}px`,
+                fontWeight: styles.fontWeight,
+                lineHeight: 1.2,
+            });
+
+            return (
+                <div className={`min-h-screen ${obsMode ? 'bg-transparent' : 'bg-gray-950 text-white'} font-sans selection:bg-blue-500/30 transition-colors duration-300`}>
+                    
+                    {/* Alert Toast */}
+                    {alertMsg && (
+                        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-xl animate-in flex items-center gap-2">
+                            <Icons.AlertCircle className="w-5 h-5"/> {alertMsg}
+                        </div>
+                    )}
+
+                    {!obsMode && (
+                        <div className="container mx-auto p-4 max-w-4xl space-y-6">
+                            <header className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                        <Icons.Activity className="text-white w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                                            K-Drama Live Translator
+                                        </h1>
+                                        <p className="text-xs text-gray-400">Powered by Gemini AI • Real-time</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" onClick={() => setObsMode(true)} title="Removes UI for OBS capture">
+                                        <Icons.Layers className="w-4 h-4" />
+                                        <span className="hidden sm:inline">OBS Mode</span>
+                                    </Button>
+                                    <Button variant="ghost" onClick={() => setShowSettings(!showSettings)}>
+                                        <Icons.Settings className="w-5 h-5" />
+                                    </Button>
+                                </div>
+                            </header>
+
+                            <Card className="grid grid-cols-1 md:grid-cols-2 gap-6 relative overflow-hidden">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium text-gray-400 uppercase tracking-wider">Audio Source</label>
+                                        {sourceType === 'system' && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">Check "Share Audio"</span>}
+                                    </div>
+                                    <div className="flex gap-2 bg-gray-800 p-1 rounded-lg">
+                                        <button onClick={() => setSourceType('system')} className={`flex-1 py-2 px-3 rounded-md text-sm font-medium flex items-center justify-center gap-2 transition-all ${sourceType === 'system' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}>
+                                            <Icons.Monitor className="w-4 h-4" /> System/App
+                                        </button>
+                                        <button onClick={() => setSourceType('mic')} className={`flex-1 py-2 px-3 rounded-md text-sm font-medium flex items-center justify-center gap-2 transition-all ${sourceType === 'mic' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}>
+                                            <Icons.Mic className="w-4 h-4" /> Microphone
+                                        </button>
+                                    </div>
+                                    {!apiKey && <div className="flex items-center gap-2 text-red-400 text-xs bg-red-900/20 p-2 rounded border border-red-900/50"><Icons.AlertCircle className="w-4 h-4" /><span>API Key required in settings.</span></div>}
+                                </div>
+
+                                <div className="space-y-3 flex flex-col justify-end">
+                                   {!isCapturing ? (
+                                      <Button onClick={startCapture} className="w-full justify-center py-3 text-lg">
+                                        <Icons.Activity className="w-5 h-5" /> Start Listening
+                                      </Button>
+                                   ) : (
+                                     <Button onClick={stopCapture} variant="danger" className="w-full justify-center py-3 text-lg animate-pulse">
+                                        <Icons.X className="w-5 h-5" /> Stop Capture
+                                     </Button>
+                                   )}
+                                   <Button variant="secondary" onClick={togglePiP} className="w-full justify-center text-sm">
+                                     <Icons.ExternalLink className="w-4 h-4" /> Pop-out Overlay (PiP)
+                                   </Button>
+                                </div>
+                            </Card>
+
+                            {showSettings && (
+                                <Card className="border-t-4 border-t-blue-500 animate-in">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-bold flex items-center gap-2"><Icons.Palette className="w-4 h-4 text-blue-400" /> Style & Config</h3>
+                                        <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-white"><Icons.X className="w-4 h-4"/></button>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-400 mb-1">Gemini API Key</label>
+                                            <input type="password" value={apiKey} onChange={(e) => saveApiKey(e.target.value)} placeholder="Paste AI Studio Key..." className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"/>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Font Size: {styles.fontSize}px</label>
+                                                    <input type="range" min="16" max="72" value={styles.fontSize} onChange={(e) => setStyles({...styles, fontSize: Number(e.target.value)})} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Background Opacity: {styles.bgOpacity}%</label>
+                                                    <input type="range" min="0" max="100" value={styles.bgOpacity} onChange={(e) => setStyles({...styles, bgOpacity: Number(e.target.value)})} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"/>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm text-gray-400 mb-1">Text Color</label>
+                                                    <div className="flex items-center gap-2 bg-gray-800 p-2 rounded border border-gray-700">
+                                                        <input type="color" value={styles.textColor} onChange={(e) => setStyles({...styles, textColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                     <label className="block text-sm text-gray-400 mb-1">Bg Color</label>
+                                                     <div className="flex items-center gap-2 bg-gray-800 p-2 rounded border border-gray-700">
+                                                        <input type="color" value={styles.bgColor} onChange={(e) => setStyles({...styles, bgColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0" />
+                                                     </div>
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <label className="block text-sm text-gray-400 mb-1">Font Weight</label>
+                                                    <select value={styles.fontWeight} onChange={(e) => setStyles({...styles, fontWeight: e.target.value})} className="w-full bg-gray-800 border border-gray-700 text-sm rounded-lg p-2 focus:ring-blue-500 outline-none">
+                                                        <option value="400">Normal</option>
+                                                        <option value="600">Semi Bold</option>
+                                                        <option value="700">Bold</option>
+                                                        <option value="900">Extra Bold</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    )}
+
+                    {obsMode && (
+                        <div className="fixed top-4 right-4 z-50 opacity-0 hover:opacity-100 transition-opacity">
+                           <Button variant="secondary" onClick={() => setObsMode(false)}>
+                             <Icons.Maximize className="w-4 h-4" /> Exit OBS Mode
+                           </Button>
+                        </div>
+                    )}
+
+                    <div id="main-preview-area" className={`${obsMode ? 'fixed inset-0 flex flex-col justify-end pb-12 items-center' : 'max-w-4xl mx-auto px-4 pb-12 mt-6'}`}>
+                        <div id="caption-container" className={`transition-all duration-300 w-full max-w-5xl rounded-xl flex flex-col items-center text-center p-6 ${obsMode ? 'mb-8' : ''}`} style={getContainerStyle()}>
+                           <h2 className="font-medium mb-3 opacity-90 transition-all" style={{ color: styles.textColor, fontSize: `${styles.fontSize * 0.6}px`, textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
+                             {transcript}
+                           </h2>
+                           <h1 className="font-bold transition-all tracking-wide" style={getTextStyle()}>
+                             {translation || (isCapturing ? "..." : "")}
+                           </h1>
+                           {isTranslating && (
+                             <div className="mt-4 flex gap-1 justify-center opacity-80">
+                               <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                               <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                               <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                             </div>
+                           )}
+                        </div>
+                    </div>
+                </div>
+            );
         }
 
-        function enterSubtitleMode() {
-            document.body.classList.add('subtitle-mode');
-            document.getElementById('subtitle-container').classList.remove('hidden');
-            document.querySelector('.exit-btn').classList.remove('hidden');
-            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
-        }
-        function exitSubtitleMode() {
-            document.body.classList.remove('subtitle-mode');
-            document.getElementById('subtitle-container').classList.add('hidden');
-            document.querySelector('.exit-btn').classList.add('hidden');
-            if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen().catch(()=>{});
-        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
