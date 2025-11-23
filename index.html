@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K-Drama Live Subtitles</title>
+    <title>K-Drama Live Subtitles (Free Version)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -14,174 +14,87 @@
             background-color: #1a1a1a;
             color: #e5e5e5;
             overflow-x: hidden;
-            transition: background-color 0.3s ease;
         }
-
-        .korean-font {
-            font-family: 'Noto Sans KR', sans-serif;
-        }
-
+        .korean-font { font-family: 'Noto Sans KR', sans-serif; }
+        
         /* Subtitle Mode Styles */
-        body.subtitle-mode {
-            background-color: #000000;
-        }
-
+        body.subtitle-mode { background-color: transparent; } /* Transparent for OBS/Overlay potential */
         body.subtitle-mode .controls-panel,
-        body.subtitle-mode .header-area {
-            display: none !important;
-        }
-
+        body.subtitle-mode .header-area { display: none !important; }
         body.subtitle-mode #subtitle-container {
-            position: fixed;
-            bottom: 10%;
-            left: 5%;
-            right: 5%;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            height: 80vh;
-            pointer-events: none;
+            position: fixed; bottom: 10%; left: 5%; right: 5%;
+            text-align: center; display: flex; flex-direction: column;
+            justify-content: flex-end; height: 80vh; pointer-events: none;
         }
-        
         body.subtitle-mode .exit-btn {
-            display: block;
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 50;
-            pointer-events: auto;
-            opacity: 0.3;
+            display: block; position: fixed; top: 20px; right: 20px;
+            z-index: 50; pointer-events: auto; opacity: 0.3;
         }
-        
-        body.subtitle-mode .exit-btn:hover {
-            opacity: 1;
-        }
+        body.subtitle-mode .exit-btn:hover { opacity: 1; }
 
-        /* Animations */
+        .recording-pulse { animation: pulse-ring 2s infinite; }
         @keyframes pulse-ring {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
             70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
-
-        .recording-pulse {
-            animation: pulse-ring 2s infinite;
-        }
-
-        .subtitle-text {
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-        }
+        .subtitle-text { text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
         
-        /* Scrollbar for log */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #2d2d2d; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #555; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #777; 
-        }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #2d2d2d; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col bg-gray-900">
 
     <header class="header-area bg-gray-900 border-b border-gray-800 p-4 shadow-lg sticky top-0 z-20">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-gradient-to-r from-pink-500 to-violet-600 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                    <i class="fa-solid fa-language"></i>
+                <div class="bg-gradient-to-r from-green-500 to-teal-600 w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-earth-asia"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-xl text-white tracking-tight">K-Live Subs</h1>
-                    <p class="text-xs text-gray-400">Korean Speech to AI English</p>
+                    <h1 class="font-bold text-xl text-white tracking-tight">Free Live Subs</h1>
+                    <p class="text-xs text-gray-400">No API Key Required</p>
                 </div>
             </div>
-            
-            <button onclick="toggleSettings()" class="text-gray-400 hover:text-white transition p-2">
-                <i class="fa-solid fa-gear text-xl"></i>
-            </button>
         </div>
     </header>
-
-    <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-gray-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-gray-700">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-white">Settings</h2>
-                <button onclick="toggleSettings()" class="text-gray-400 hover:text-white">
-                    <i class="fa-solid fa-xmark text-2xl"></i>
-                </button>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Gemini API Key (Required)</label>
-                    <input type="password" id="api-key-input" placeholder="Paste your API key here..." 
-                        class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-violet-500 focus:outline-none transition">
-                    <p class="text-xs text-gray-500 mt-2">
-                        Needed for high-quality translation. Get one at <a href="https://aistudio.google.com" target="_blank" class="text-violet-400 hover:underline">Google AI Studio</a>.
-                    </p>
-                </div>
-
-                <div class="pt-4 border-t border-gray-700">
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Subtitle Size</label>
-                    <input type="range" id="font-size-slider" min="16" max="64" value="32" class="w-full accent-violet-500">
-                </div>
-            </div>
-
-            <button onclick="saveSettings()" class="w-full mt-6 bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl transition shadow-lg">
-                Save & Close
-            </button>
-        </div>
-    </div>
 
     <main class="flex-grow flex flex-col items-center justify-start pt-6 pb-20 px-4 max-w-4xl mx-auto w-full">
 
         <div class="controls-panel w-full bg-gray-800/50 rounded-2xl p-6 border border-gray-700 shadow-xl backdrop-blur mb-6">
             <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
-                
-                <div class="flex items-center gap-4 w-full sm:w-auto">
-                    <button id="record-btn" onclick="toggleRecording()" 
-                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-xl transition group">
-                        <div id="record-indicator" class="w-3 h-3 rounded-full bg-red-500"></div>
-                        <span id="record-text">Start Listening</span>
-                    </button>
-                </div>
+                <button id="record-btn" onclick="toggleRecording()" 
+                    class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-xl transition group w-full sm:w-auto">
+                    <div id="record-indicator" class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span id="record-text">Start Listening</span>
+                </button>
 
                 <div class="flex gap-3 w-full sm:w-auto">
-                    <button onclick="clearHistory()" class="flex-1 sm:flex-none bg-gray-700 hover:bg-gray-600 text-gray-300 py-3 px-4 rounded-xl transition" title="Clear History">
+                    <button onclick="clearHistory()" class="bg-gray-700 hover:bg-gray-600 text-gray-300 py-3 px-4 rounded-xl transition">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
-                    <button onclick="enterSubtitleMode()" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-xl transition shadow-md flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-expand"></i>
-                        <span>Subtitle Mode</span>
+                    <button onclick="enterSubtitleMode()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-xl transition shadow-md flex items-center gap-2">
+                        <i class="fa-solid fa-expand"></i> Mode
                     </button>
                 </div>
             </div>
-            
             <div class="mt-4 flex items-center gap-2 text-sm">
                 <span class="text-gray-400">Status:</span>
-                <span id="status-text" class="text-yellow-500 font-medium">Ready (Requires Mic)</span>
+                <span id="status-text" class="text-yellow-500 font-medium">Ready</span>
             </div>
         </div>
 
         <div id="main-display" class="w-full space-y-6">
-            
             <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800 min-h-[120px] flex flex-col justify-center items-center text-center shadow-inner relative overflow-hidden">
-                <div class="absolute top-2 left-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Live Input</div>
-                
+                <div class="absolute top-2 left-3 text-xs font-bold text-gray-600 uppercase">Live Input</div>
                 <p id="interim-korean" class="korean-font text-gray-400 text-lg mb-2 opacity-80 min-h-[1.5em]">...</p>
-                
                 <div id="translation-loader" class="hidden absolute top-2 right-3">
-                    <i class="fa-solid fa-circle-notch fa-spin text-violet-500"></i>
+                    <i class="fa-solid fa-circle-notch fa-spin text-green-500"></i>
                 </div>
-
-                <h2 id="live-english" class="text-2xl md:text-3xl font-bold text-yellow-400 leading-tight transition-all">
+                <h2 id="live-english" class="text-2xl md:text-3xl font-bold text-green-400 leading-tight transition-all">
                     Waiting for speech...
                 </h2>
             </div>
@@ -196,8 +109,7 @@
 
         <div id="subtitle-container" class="hidden">
             <div id="subtitle-content" class="transition-all duration-300">
-                <p id="subtitle-korean" class="korean-font text-gray-500 text-xl mb-2 opacity-0 transition-opacity duration-300"></p>
-                <p id="subtitle-english" class="text-yellow-400 font-bold leading-tight subtitle-text">
+                <p id="subtitle-english" class="text-yellow-400 font-bold leading-tight subtitle-text" style="font-size: 32px;">
                     Listening...
                 </p>
             </div>
@@ -210,129 +122,71 @@
     </main>
 
     <script>
-        // --- Configuration & State ---
-        // Key added per user request
-        let apiKey = localStorage.getItem('gemini_api_key') || '';
-        if (apiKey) document.getElementById('api-key-input').value = apiKey;
-
         let recognition;
         let isListening = false;
-        let subtitleSize = 32;
         
-        // --- Elements ---
         const recordBtn = document.getElementById('record-btn');
         const recordIndicator = document.getElementById('record-indicator');
         const recordText = document.getElementById('record-text');
         const statusText = document.getElementById('status-text');
-        
         const interimKoreanEl = document.getElementById('interim-korean');
         const liveEnglishEl = document.getElementById('live-english');
         const historyLog = document.getElementById('history-log');
-        
-        const subtitleContainer = document.getElementById('subtitle-container');
         const subtitleEnglish = document.getElementById('subtitle-english');
-        const subtitleKorean = document.getElementById('subtitle-korean'); 
-
         const loader = document.getElementById('translation-loader');
 
-        // --- Initialization ---
         function initSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert("Your browser does not support Speech Recognition. Please use Google Chrome or Edge.");
-                statusText.innerText = "Browser Not Supported";
-                statusText.className = "text-red-500 font-medium";
+                alert("Please use Google Chrome.");
                 return null;
             }
-
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const rec = new SpeechRecognition();
-            
             rec.continuous = true; 
             rec.interimResults = true; 
             rec.lang = 'ko-KR'; 
-            
+
             rec.onstart = () => {
                 isListening = true;
                 updateUIState(true);
                 statusText.innerText = "Listening to Korean...";
                 statusText.className = "text-green-400 font-medium";
             };
-
             rec.onerror = (event) => {
-                console.error("Speech Error:", event.error);
-                if (event.error === 'no-speech') {
-                    return;
-                }
+                if (event.error === 'no-speech') return;
                 statusText.innerText = `Error: ${event.error}`;
-                statusText.className = "text-red-500 font-medium";
                 isListening = false;
                 updateUIState(false);
             };
-
             rec.onend = () => {
-                if (isListening) {
-                    console.log("Restarting recognition...");
-                    try {
-                        rec.start();
-                    } catch(e) {
-                        isListening = false;
-                        updateUIState(false);
-                    }
-                } else {
-                    updateUIState(false);
-                    statusText.innerText = "Stopped";
-                    statusText.className = "text-yellow-500 font-medium";
-                }
+                if (isListening) rec.start(); // Auto-restart
+                else updateUIState(false);
             };
-
             rec.onresult = (event) => {
-                let interimTranscript = '';
                 let finalTranscript = '';
-
+                let interimTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
+                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+                    else interimTranscript += event.results[i][0].transcript;
                 }
-
-                if (interimTranscript) {
-                    interimKoreanEl.innerText = interimTranscript;
-                }
-
+                if (interimTranscript) interimKoreanEl.innerText = interimTranscript;
                 if (finalTranscript) {
-                    interimKoreanEl.innerText = finalTranscript; 
+                    interimKoreanEl.innerText = finalTranscript;
                     handleFinalTranscript(finalTranscript);
                 }
             };
-
             return rec;
         }
 
         recognition = initSpeechRecognition();
 
-        // --- Core Logic ---
-
         function toggleRecording() {
             if (!recognition) return;
-
             if (isListening) {
                 isListening = false;
                 recognition.stop();
             } else {
-                // Check API Key
-                if (!apiKey) {
-                    toggleSettings();
-                    alert("Please enter your Gemini API Key first to enable translation.");
-                    return;
-                }
-                try {
-                    recognition.start();
-                    isListening = true; 
-                } catch (e) {
-                    console.error(e);
-                }
+                recognition.start();
             }
         }
 
@@ -352,75 +206,43 @@
             }
         }
 
+        // --- FREE TRANSLATION LOGIC (NO KEY) ---
         async function handleFinalTranscript(koreanText) {
-            // Show loader
             loader.classList.remove('hidden');
-            
-            // 1. Translate
-            const englishText = await translateWithGemini(koreanText);
-            
-            // 2. Update UI
+            const englishText = await translateFree(koreanText);
             loader.classList.add('hidden');
             updateDisplay(koreanText, englishText);
         }
 
-        async function translateWithGemini(text) {
-            if (!apiKey) return "[Missing API Key]";
-
-            const prompt = `Translate this Korean text from a movie/drama to concise, natural English subtitles. Do not include notes, just the translation: "${text}"`;
-            
-            // --- FIX IS HERE: Changed from 2.5-preview to 1.5-flash ---
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        async function translateFree(text) {
+            // Using MyMemory API (Free, Public, No Key)
+            // Note: Has daily limits per IP, but good for demos
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ko|en`;
 
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
-                });
-
+                const response = await fetch(url);
                 const data = await response.json();
                 
-                if (data.error) {
-                    console.error("Gemini Error:", data.error);
-                    return "[Translation Error: Check Console]";
+                if (data.responseStatus === 200) {
+                    return data.responseData.translatedText;
+                } else {
+                    return "[Limit Reached or Error]";
                 }
-
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "[No Translation]";
-
             } catch (error) {
-                console.error("Network Error:", error);
+                console.error(error);
                 return "[Network Error]";
             }
         }
 
         function updateDisplay(korean, english) {
-            // Main Display
             liveEnglishEl.innerText = english;
-            
-            // Subtitle Mode Display
             subtitleEnglish.innerText = english;
-            subtitleKorean.innerText = korean; 
             
-            // History
-            addToHistory(korean, english);
-        }
-
-        function addToHistory(korean, english) {
-            // Remove placeholder if exists
-            if (historyLog.querySelector('.italic')) {
-                historyLog.innerHTML = '';
-            }
-
+            // Add to history
+            if (historyLog.querySelector('.italic')) historyLog.innerHTML = '';
             const item = document.createElement('div');
-            item.className = "bg-gray-800 p-3 rounded-lg border-l-4 border-violet-500 animate-[fadeIn_0.5s_ease-out]";
-            item.innerHTML = `
-                <p class="text-xs text-gray-500 mb-1 korean-font">${korean}</p>
-                <p class="text-white font-medium">${english}</p>
-            `;
-            
+            item.className = "bg-gray-800 p-3 rounded-lg border-l-4 border-green-500 animate-[fadeIn_0.5s_ease-out]";
+            item.innerHTML = `<p class="text-xs text-gray-500 mb-1 korean-font">${korean}</p><p class="text-white font-medium">${english}</p>`;
             historyLog.insertBefore(item, historyLog.firstChild);
         }
 
@@ -428,57 +250,21 @@
             historyLog.innerHTML = '<div class="text-center text-gray-600 py-10 italic">Translation history will appear here.</div>';
             liveEnglishEl.innerText = "Waiting for speech...";
             interimKoreanEl.innerText = "...";
-            subtitleEnglish.innerText = "Listening...";
-        }
-
-        // --- Settings & Modes ---
-
-        function toggleSettings() {
-            const modal = document.getElementById('settings-modal');
-            modal.classList.toggle('hidden');
-        }
-
-        function saveSettings() {
-            const input = document.getElementById('api-key-input');
-            apiKey = input.value.trim();
-            localStorage.setItem('gemini_api_key', apiKey);
-            
-            // Update Font Size
-            const slider = document.getElementById('font-size-slider');
-            subtitleSize = slider.value;
-            subtitleEnglish.style.fontSize = subtitleSize + "px";
-            
-            toggleSettings();
         }
 
         function enterSubtitleMode() {
             document.body.classList.add('subtitle-mode');
             document.getElementById('subtitle-container').classList.remove('hidden');
             document.querySelector('.exit-btn').classList.remove('hidden');
-            
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(e => {
-                    console.warn("Fullscreen blocked or not supported:", e);
-                });
-            }
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(e => {});
         }
 
         function exitSubtitleMode() {
             document.body.classList.remove('subtitle-mode');
             document.getElementById('subtitle-container').classList.add('hidden');
             document.querySelector('.exit-btn').classList.add('hidden');
-            
-            if (document.exitFullscreen && document.fullscreenElement) {
-                document.exitFullscreen().catch(e => console.warn("Exit fullscreen failed:", e));
-            }
+            if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen().catch(e => {});
         }
-
-        // Slider listener
-        document.getElementById('font-size-slider').addEventListener('input', (e) => {
-            subtitleSize = e.target.value;
-            subtitleEnglish.style.fontSize = subtitleSize + "px";
-        });
-
     </script>
 </body>
 </html>
